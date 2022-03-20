@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: fd-model-server
+  name: fd-model-server
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fd-model-server
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: fd-model-server
+    spec:
+      containers:
+      - image: lukbast/fd_model_server:2022.2.1.RELEASE
+        imagePullPolicy: IfNotPresent
+        name: fd-model-server-m2xdc
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    cloud.google.com/neg: '{"ingress":true}'
+  finalizers:
+  - service.kubernetes.io/load-balancer-cleanup
+  labels:
+    app: fd-model-server
+  name: fd-model-server
+  namespace: default
+spec:
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - nodePort: 32049
+    port: 8605
+    protocol: TCP
+    targetPort: 8605
+  selector:
+    app: fd-model-server
+  sessionAffinity: None
+  type: LoadBalancer
